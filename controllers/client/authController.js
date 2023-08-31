@@ -86,9 +86,8 @@ export const login = asyncHandler(async (req, res) => {
         }
         );
 
-        res.json({
-            message: `Too many attempts, please try again after 2 minutes`
-        });
+        throw new Error("Too many attempts, please try again after 2 minutes")
+        
     }
 });
 
