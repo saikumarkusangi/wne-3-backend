@@ -49,45 +49,13 @@ export const login = asyncHandler(async (req, res) => {
     }
 
     const result = await UserSchema.findOne({ email });
-    const providedTime = new Date(result.loginReactiveTime);
-
-    // Current time
-    const currentTime = new Date();
 
     if (!result) {
         throw new Error('User not found');
-
-    } 
-    else if ((providedTime) && currentTime < providedTime) {
-        throw new Error("Too many attempts, please try again after 2 minutes");
-
-    } 
-    else if (result && !(await result.isPasswordMatched(password))) {
-        const updateLoginRetryLimit = await UserSchema.findByIdAndUpdate(result.id, {
-            $inc: { loginRetryLimit: 1 }
-        }, {
-            new: true
-        });
-
-        if(updateLoginRetryLimit.loginRetryLimit>=3){
-            const now = new Date();
-            const retryTime = new Date(now.getTime() + 2 * 60 * 1000); // Adding 2 minutes in milliseconds
-            const updateLoginReactiveTime = await UserSchema.findByIdAndUpdate(
-                result.id, {
-                loginReactiveTime: retryTime
-            }
-            );
-            throw new Error("Too many attempts, please try again after 2 minutes")
-            
-        }else{
-            throw new Error("Incorrect Password");
-        }
-
     } else if (result && await result.isPasswordMatched(password)) {
         const refreshToken = await generateRefreshToken(result.id);
         const updateUser = await UserSchema.findByIdAndUpdate(result.id, {
-            refreshToken,
-            loginRetryLimit: 0
+            refreshToken
         }, {
             new: true
         });
@@ -101,9 +69,26 @@ export const login = asyncHandler(async (req, res) => {
             data: result,
             token: generateToken(result.id)
         });
+    } else if (result.loginRetryLimit <= 3) {
+        const updateLoginRetryLimit = await UserSchema.findByIdAndUpdate(result.id, {
+            $inc: { loginRetryLimit: 1 }
+        }, {
+            new: true
+        });
 
+        throw new Error("Incorrect Password");
+    } else {
+        const now = new Date();
+        const retryTime = new Date(now.getTime() + 2000);
+        const updateLoginReactiveTime = await UserSchema.findByIdAndUpdate(
+            result.id, {
+            loginReactiveTime: retryTime
+        }
+        );
+
+        throw new Error("Too many attempts, please try again after 2 minutes")
+        
     }
-   
 });
 
 /**
