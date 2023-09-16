@@ -58,11 +58,7 @@ const userSchema = new Schema({
         expireTime: Date
     },
 
-    loginRetryLimit: {
-        type: Number,
-        default: 0
-    },
-    loginReactiveTime: { type: Date }
+    
 
 }, {
     timestamps: {
@@ -87,7 +83,7 @@ userSchema.method('toJSON', function () {
     } = this.toObject();
     object.id = _id;
     delete object.password;
-    delete object.loginRetryLimit;
+
 
     return object;
 }, { versionKey: false });
